@@ -14,10 +14,15 @@ pub fn connect(server: &Server) -> anyhow::Result<()> {
         cmd.arg("--port").arg(port.to_string());
     }
 
-    // mosh は子プロセスとして実行され、終了するまで待つ
     let status = cmd.status()?;
     if !status.success() {
-        anyhow::bail!("mosh が異常終了しました: {status}");
+        anyhow::bail!(
+            "mosh 接続に失敗しました (status: {status})\n\
+             接続先で mosh がインストールされているか確認:\n\
+             ssh {} {} 'which mosh-server || echo not found'",
+            if let Some(u) = &server.user { format!("-l {u}") } else { String::new() },
+            server.hostname,
+        );
     }
     Ok(())
 }
