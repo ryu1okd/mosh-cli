@@ -11,7 +11,7 @@ pub fn connect(server: &Server) -> anyhow::Result<()> {
     // 1. ログインシェル経由で mosh-server を起動（.zprofile / .bash_profile を読ませる）
     let output = Command::new("ssh")
         .arg(&addr)
-        .arg("zsh -lc 'mosh-server new' || bash -lc 'mosh-server new' || mosh-server new")
+        .arg(". $HOME/.zprofile 2>/dev/null; . $HOME/.bash_profile 2>/dev/null; . $HOME/.profile 2>/dev/null; . $HOME/.bashrc 2>/dev/null; mosh-server new")
         .output()?;
 
     let stderr = String::from_utf8_lossy(&output.stderr);
