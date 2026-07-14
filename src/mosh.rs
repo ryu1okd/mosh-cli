@@ -8,25 +8,22 @@ pub fn connect(server: &Server) -> anyhow::Result<()> {
     let user = server.user.as_deref().unwrap_or("root");
     let addr = format!("{user}@{}", server.hostname);
 
-    // 1. SSH で接続し mosh-server の有無を確認
-    let check = Command::new("ssh")
+    // 1. mosh-server を起動（PATH 補完: Homebrew / usr-local のパスも含める）
+    let output = Command::new("ssh")
         .arg(&addr)
-        .arg("which mosh-server >/dev/null 2>&1")
-        .status()?;
-    if !check.success() {
+        .arg("export PATH=\"$PATH:/opt/homebrew/bin:/usr/local/bin\"; mosh-server new")
+        .output()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
         anyhow::bail!(
-            "接続先 '{}' に mosh-server が見つかりません",
+            "接続先 '{}' で mosh-server の起動に失敗:\n{}",
             server.hostname,
+            stderr.lines().next().unwrap_or("不明なエラー"),
         );
     }
 
-    // 2. mosh-server を起動
-    let output = Command::new("ssh")
-        .arg(&addr)
-        .arg("mosh-server new")
-        .output()?;
-
-    // 3. キーとポート番号をパース
+    // 2. キーとポート番号をパース
     let stdout = String::from_utf8_lossy(&output.stdout);
     let first_line = stdout.lines().next().context("mosh-server の出力が空です")?;
     let parts: Vec<&str> = first_line.splitn(4, char::is_whitespace).collect();
