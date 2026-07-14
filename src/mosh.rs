@@ -8,10 +8,10 @@ pub fn connect(server: &Server) -> anyhow::Result<()> {
     let user = server.user.as_deref().unwrap_or("root");
     let addr = format!("{user}@{}", server.hostname);
 
-    // 1. ログインシェル経由で mosh-server を起動（.zprofile / .bash_profile を読ませる）
+    // 1. 絶対パスで mosh-server を起動（PATH に依存しない）
     let output = Command::new("ssh")
         .arg(&addr)
-        .arg(". $HOME/.zprofile 2>/dev/null; . $HOME/.bash_profile 2>/dev/null; . $HOME/.profile 2>/dev/null; . $HOME/.bashrc 2>/dev/null; mosh-server new")
+        .arg("/opt/homebrew/bin/mosh-server new || /usr/local/bin/mosh-server new || /usr/bin/mosh-server new || mosh-server new")
         .output()?;
 
     let stderr = String::from_utf8_lossy(&output.stderr);
