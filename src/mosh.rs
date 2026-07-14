@@ -8,18 +8,19 @@ pub fn connect(server: &Server) -> anyhow::Result<()> {
     let user = server.user.as_deref().unwrap_or("root");
     let addr = format!("{user}@{}", server.hostname);
 
-    // 1. mosh-server を起動（PATH 補完: Homebrew / usr-local のパスも含める）
+    // 1. ログインシェル経由で mosh-server を起動（.zprofile / .bash_profile を読ませる）
     let output = Command::new("ssh")
         .arg(&addr)
-        .arg("export PATH=\"$PATH:/opt/homebrew/bin:/usr/local/bin\"; mosh-server new")
+        .arg("zsh -lc 'mosh-server new' || bash -lc 'mosh-server new' || mosh-server new")
         .output()?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if !output.status.success() || stderr.contains("not found") || stderr.contains("command not found") {
         anyhow::bail!(
-            "接続先 '{}' で mosh-server の起動に失敗:\n{}",
+            "接続先 '{}' で mosh-server の起動に失敗\n\
+             確認: ssh {} 'which mosh-server || echo not found'",
             server.hostname,
-            stderr.lines().next().unwrap_or("不明なエラー"),
+            &addr,
         );
     }
 
